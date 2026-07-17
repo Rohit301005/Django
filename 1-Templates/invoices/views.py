@@ -13,4 +13,6 @@ def home(request):
 #         "invoice_total": 15000,
 #     }
 
-#     return render(request,"1-Templates\templates\cust_name.html", data)
+#     return render(request, "C:\\Users\\rawat\\OneDrive\\Desktop\\Django\\1-Templates\\invoices\\templates\\cust_name.html", data)
+
+

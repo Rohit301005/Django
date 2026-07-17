@@ -1,3 +1,33 @@
 step-1
 create a box
+python -m venv venv
 
+step-2
+inside the box
+venv\Scripts\activate
+
+step-3
+pip install django
+
+step-4
+verification
+
+step-5
+alaways activate venv
+
+
+---------------------
+startproject
+
+django-admin startproject mysite .
+
+
+django-admin -> 
+startproject -> new projrect building
+
+creating app
+python manage.py startapp (nameofapp)invoice
+
+-------------
+to run the app
+python manage.py runserver

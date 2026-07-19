@@ -11,3 +11,9 @@ def about(request):
 def contact(request):
     return HttpResponse("this is our contact page ")
 
+def show_invoice(request):
+    data = {
+        "customer_name" : "Rohit",
+        "Total amount" : 1000,
+    }
+    return render(request,"C:\\Users\\rawat\\OneDrive\\Desktop\\Django\\Basic Setup\\invoice\\Templates\\cust_name.html",data)

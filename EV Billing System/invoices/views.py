@@ -9,12 +9,12 @@ def home(request):
 def about(request):
     return HttpResponse("This is about Page")
 
-# def show_invoice(request):
-#     data = {
-#         "customer_name": "Rohit Kumar Rawat",
-#         "invoice_total": 15000,
-#     }
+def show_invoice(request):
+    data = {
+        "customer_name": "Rohit Kumar Rawat",
+        "invoice_total": 15000,
+    }
 
-#     return render(request, "C:\\Users\\rawat\\OneDrive\\Desktop\\Django\\1-Templates\\invoices\\templates\\cust_name.html", data)
+    return render(request, "cust_name.html", data)
 
 

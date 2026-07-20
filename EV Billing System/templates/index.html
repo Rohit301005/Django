@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Invoice Billing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --paper:#FBF9F5;
+    --paper-dim:#F2EEE4;
+    --line:#E4E0D6;
+    --teal:#2F6E5E;
+    --teal-dark:#204F43;
+    --gold:#C99A3D;
+    --red:#B4483A;
+    --muted:#6B7178;
+    --shadow: 0 10px 30px rgba(27,36,48,0.10);
+    --radius: 3px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:var(--paper-dim);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:'Zilla Slab', serif;
+    margin:0;
+  }
+
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    background:var(--ink);
+    color:var(--paper);
+    padding:18px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .topbar .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .topbar .brand .mark{
+    width:30px;height:30px;border:2px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Zilla Slab',serif;font-weight:700;color:var(--gold);
+    transform:rotate(45deg);
+  }
+  .topbar .brand .mark span{ transform:rotate(-45deg); }
+  .topbar h1{ font-size:20px; letter-spacing:0.02em; }
+  .topbar .sub{ font-size:12px; color:#B9C2C9; letter-spacing:0.08em; text-transform:uppercase; }
+
+  /* ---------- Layout ---------- */
+  .wrap{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:28px;
+    max-width:1360px;
+    margin:28px auto;
+    padding:0 32px 60px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .wrap{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Form card ---------- */
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:26px 28px;
+  }
+  .card + .card{ margin-top:22px; }
+
+  .card h2{
+    font-size:16px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--teal-dark);
+    padding-bottom:12px;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--line);
+  }
+
+  .field-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:14px;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column: 1 / -1; }
+  .field label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    font-weight:600;
+  }
+  .field input, .field select, .field textarea{
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .field textarea{ resize:vertical; min-height:56px; }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:2px solid var(--teal);
+    outline-offset:1px;
+    border-color:var(--teal);
+  }
+
+  /* ---------- Line items ---------- */
+  table.items{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:14px;
+  }
+  table.items th{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    text-align:left;
+    padding:0 6px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  table.items td{
+    padding:6px;
+    vertical-align:top;
+  }
+  table.items input{
+    width:100%;
+    font-size:13px;
+    padding:7px 8px;
+    border:1px solid var(--line);
+    border-radius:2px;
+  }
+  table.items td.amount{
+    font-family:'JetBrains Mono', monospace;
+    text-align:right;
+    padding:10px 8px;
+    white-space:nowrap;
+  }
+  table.items td.qty, table.items td.rate{ width:90px; }
+  table.items td.remove{ width:34px; text-align:center; }
+  .remove-btn{
+    border:none;
+    background:none;
+    color:var(--red);
+    font-size:16px;
+    cursor:pointer;
+    line-height:1;
+    padding:6px;
+  }
+  .remove-btn:hover{ opacity:0.7; }
+
+  .add-row-btn{
+    background:none;
+    border:1px dashed var(--muted);
+    color:var(--teal-dark);
+    font-size:13px;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:2px;
+    cursor:pointer;
+    width:100%;
+  }
+  .add-row-btn:hover{ border-color:var(--teal); background:#F4F8F6; }
+
+  .totals-inputs{
+    display:flex;
+    gap:14px;
+    margin-top:18px;
+  }
+  .totals-inputs .field{ flex:1; }
+
+  .generate-btn{
+    margin-top:22px;
+    width:100%;
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    padding:14px;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .generate-btn:hover{ background:var(--teal-dark); }
+
+  /* ---------- Invoice preview (signature element) ---------- */
+  .preview-wrap{ position:sticky; top:22px; }
+  .invoice-sheet{
+    background:var(--paper);
+    box-shadow:var(--shadow);
+    position:relative;
+    padding:44px 46px 34px;
+  }
+  /* perforated / receipt-torn top edge */
+  .invoice-sheet::before{
+    content:"";
+    position:absolute;
+    top:-1px; left:0; right:0; height:10px;
+    background-image: radial-gradient(circle at 10px 5px, var(--paper-dim) 5px, transparent 5.5px);
+    background-size:20px 10px;
+    background-repeat:repeat-x;
+  }
+
+  .inv-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:20px;
+    margin-bottom:22px;
+  }
+  .inv-head .from-name{
+    font-size:22px;
+    font-weight:600;
+  }
+  .inv-head .from-meta{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:6px;
+    line-height:1.5;
+    white-space:pre-line;
+  }
+  .inv-head .doc-type{
+    text-align:right;
+  }
+  .inv-head .doc-type .label{
+    font-size:26px;
+    letter-spacing:0.08em;
+    color:var(--teal);
+  }
+  .inv-head .doc-type .num{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+
+  .inv-meta-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:16px;
+    margin-bottom:26px;
+  }
+  .inv-meta-grid .block .label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.07em;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .inv-meta-grid .block .value{
+    font-size:14px;
+    white-space:pre-line;
+    line-height:1.5;
+  }
+
+  table.preview-items{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:8px;
+  }
+  table.preview-items thead th{
+    text-align:left;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:#fff;
+    background:var(--ink);
+    padding:9px 10px;
+  }
+  table.preview-items thead th.num{ text-align:right; }
+  table.preview-items tbody td{
+    padding:9px 10px;
+    font-size:13px;
+    border-bottom:1px solid var(--line);
+  }
+  table.preview-items tbody td.num{
+    text-align:right;
+    font-family:'JetBrains Mono', monospace;
+  }
+  table.preview-items tbody tr:nth-child(even){ background:#F8F6F0; }
+
+  .inv-totals{
+    margin-left:auto;
+    width:280px;
+    margin-top:14px;
+  }
+  .inv-totals .row{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    padding:6px 2px;
+  }
+  .inv-totals .row.grand{
+    border-top:2px solid var(--ink);
+    margin-top:6px;
+    padding-top:12px;
+    font-size:17px;
+    font-weight:700;
+    font-family:'Zilla Slab', serif;
+    color:var(--teal-dark);
+  }
+  .inv-totals .row .num{ font-family:'JetBrains Mono', monospace; }
+
+  .inv-footer{
+    margin-top:30px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-size:12px;
+    color:var(--muted);
+    white-space:pre-line;
+  }
+
+  .status-pill{
+    display:inline-block;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:20px;
+    margin-top:6px;
+  }
+  .status-pill.unpaid{ background:#FBEAE6; color:var(--red); }
+  .status-pill.paid{ background:#E8F3EE; color:var(--teal-dark); }
+
+  .action-row{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+  }
+  .action-row button{
+    flex:1;
+    padding:11px;
+    font-size:13px;
+    font-weight:600;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .btn-secondary{
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .btn-secondary:hover{ border-color:var(--ink); }
+  .btn-primary{
+    background:var(--ink);
+    border:1px solid var(--ink);
+    color:#fff;
+  }
+  .btn-primary:hover{ background:#0F151D; }
+
+  @media print{
+    .topbar, .wrap > div:first-child, .action-row{ display:none !important; }
+    body{ background:#fff; }
+    .wrap{ display:block; padding:0; margin:0; }
+    .invoice-sheet{ box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark"><span>L</span></div>
+    <div>
+      <h1>Ledger</h1>
+    </div>
+  </div>
+  <div class="sub">Invoice Billing</div>
+</div>
+
+<div class="wrap">
+
+  <!-- LEFT: FORM -->
+  <div>
+    <div class="card">
+      <h2>Your business</h2>
+      <div class="field-row">
+        <div class="field full">
+          <label for="fromName">Business name</label>
+          <input type="text" id="fromName" value="Northwind Studio" oninput="render()">
+        </div>
+        <div class="field full">
+          <label for="fromAddress">Address / contact</label>
+          <textarea id="fromAddress" oninput="render()">221 Baker Street, Bhopal, MP 462001
+billing@northwindstudio.com · +91 98765 43210</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Bill to</h2>
+      <div class="field-row">
+        <div class="field full">
+          <label for="toName">Client name</label>
+          <input type="text" id="toName" value="Aurora Retail Pvt. Ltd." oninput="render()">
+        </div>
+        <div class="field full">
+          <label for="toAddress">Client address</label>
+          <textarea id="toAddress" oninput="render()">14 MG Road, Indore, MP 452001
+accounts@auroraretail.in</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Invoice details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="invNumber">Invoice number</label>
+          <input type="text" id="invNumber" value="INV-2026-014" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="invStatus">Status</label>
+          <select id="invStatus" onchange="render()">
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="invDate">Issue date</label>
+          <input type="date" id="invDate" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="dueDate">Due date</label>
+          <input type="date" id="dueDate" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Line items</h2>
+      <table class="items">
+        <thead>
+          <tr>
+            <th style="width:auto;">Description</th>
+            <th class="qty">Qty</th>
+            <th class="rate">Rate</th>
+            <th style="width:100px; text-align:right;">Amount</th>
+            <th class="remove"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+      <button class="add-row-btn" onclick="addItem()">+ Add line item</button>
+
+      <div class="totals-inputs">
+        <div class="field">
+          <label for="taxPct">Tax (%)</label>
+          <input type="number" id="taxPct" value="18" min="0" step="0.01" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="discountPct">Discount (%)</label>
+          <input type="number" id="discountPct" value="0" min="0" step="0.01" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="currency">Currency symbol</label>
+          <input type="text" id="currency" value="₹" oninput="render()">
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="notes">Notes / payment terms</label>
+        <textarea id="notes" oninput="render()">Payment due within 15 days. Thank you for your business.</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: PREVIEW -->
+  <div class="preview-wrap">
+    <div class="invoice-sheet" id="invoiceSheet">
+      <div class="inv-head">
+        <div>
+          <div class="from-name" id="pFromName"></div>
+          <div class="from-meta" id="pFromAddress"></div>
+        </div>
+        <div class="doc-type">
+          <div class="label">Invoice</div>
+          <div class="num" id="pInvNumber"></div>
+          <div id="pStatus"></div>
+        </div>
+      </div>
+
+      <div class="inv-meta-grid">
+        <div class="block">
+          <div class="label">Billed to</div>
+          <div class="value" id="pToName"></div>
+          <div class="value" id="pToAddress" style="font-size:12px; color:var(--muted); margin-top:4px;"></div>
+        </div>
+        <div class="block">
+          <div class="label">Issue date</div>
+          <div class="value" id="pInvDate"></div>
+        </div>
+        <div class="block">
+          <div class="label">Due date</div>
+          <div class="value" id="pDueDate"></div>
+        </div>
+      </div>
+
+      <table class="preview-items">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="num">Qty</th>
+            <th class="num">Rate</th>
+            <th class="num">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="pItemsBody"></tbody>
+      </table>
+
+      <div class="inv-totals">
+        <div class="row"><span>Subtotal</span><span class="num" id="pSubtotal"></span></div>
+        <div class="row"><span id="pDiscountLabel">Discount</span><span class="num" id="pDiscount"></span></div>
+        <div class="row"><span id="pTaxLabel">Tax</span><span class="num" id="pTax"></span></div>
+        <div class="row grand"><span>Total due</span><span class="num" id="pTotal"></span></div>
+      </div>
+
+      <div class="inv-footer" id="pNotes"></div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-secondary" onclick="window.print()">Print / Save as PDF</button>
+      <button class="btn-primary" onclick="downloadJSON()">Export invoice data (.json)</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let items = [
+  { desc: "UI/UX design — homepage revamp", qty: 1, rate: 25000 },
+  { desc: "Frontend development (React)", qty: 20, rate: 1200 },
+  { desc: "Hosting & deployment setup", qty: 1, rate: 3500 },
+];
+
+function addItem(){
+  items.push({ desc: "", qty: 1, rate: 0 });
+  renderItemsForm();
+  render();
+}
+
+function removeItem(i){
+  items.splice(i, 1);
+  renderItemsForm();
+  render();
+}
+
+function updateItem(i, field, value){
+  if(field === "desc"){ items[i].desc = value; }
+  else { items[i][field] = parseFloat(value) || 0; }
+  render();
+}
+
+function renderItemsForm(){
+  const body = document.getElementById('itemsBody');
+  body.innerHTML = items.map((it, i) => `
+    <tr>
+      <td><input type="text" value="${escapeAttr(it.desc)}" placeholder="Item description"
+            oninput="updateItem(${i}, 'desc', this.value)"></td>
+      <td class="qty"><input type="number" min="0" step="0.01" value="${it.qty}"
+            oninput="updateItem(${i}, 'qty', this.value)"></td>
+      <td class="rate"><input type="number" min="0" step="0.01" value="${it.rate}"
+            oninput="updateItem(${i}, 'rate', this.value)"></td>
+      <td class="amount">${fmt(it.qty * it.rate)}</td>
+      <td class="remove"><button class="remove-btn" onclick="removeItem(${i})" title="Remove line" aria-label="Remove line">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+function escapeAttr(s){
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function currency(){
+  return document.getElementById('currency').value || '';
+}
+
+function fmt(n){
+  return currency() + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function render(){
+  const fromName = document.getElementById('fromName').value;
+  const fromAddress = document.getElementById('fromAddress').value;
+  const toName = document.getElementById('toName').value;
+  const toAddress = document.getElementById('toAddress').value;
+  const invNumber = document.getElementById('invNumber').value;
+  const invDate = document.getElementById('invDate').value;
+  const dueDate = document.getElementById('dueDate').value;
+  const status = document.getElementById('invStatus').value;
+  const taxPct = parseFloat(document.getElementById('taxPct').value) || 0;
+  const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+  const notes = document.getElementById('notes').value;
+
+  document.getElementById('pFromName').textContent = fromName;
+  document.getElementById('pFromAddress').textContent = fromAddress;
+  document.getElementById('pToName').textContent = toName;
+  document.getElementById('pToAddress').textContent = toAddress;
+  document.getElementById('pInvNumber').textContent = '#' + invNumber;
+  document.getElementById('pInvDate').textContent = invDate || '—';
+  document.getElementById('pDueDate').textContent = dueDate || '—';
+
+  const statusEl = document.getElementById('pStatus');
+  statusEl.innerHTML = `<span class="status-pill ${status}">${status}</span>`;
+
+  const pItemsBody = document.getElementById('pItemsBody');
+  pItemsBody.innerHTML = items.map(it => `
+    <tr>
+      <td>${escapeAttr(it.desc) || '<span style="color:var(--muted)">Untitled item</span>'}</td>
+      <td class="num">${it.qty}</td>
+      <td class="num">${fmt(it.rate)}</td>
+      <td class="num">${fmt(it.qty * it.rate)}</td>
+    </tr>
+  `).join('');
+
+  const subtotal = items.reduce((sum, it) => sum + (it.qty * it.rate), 0);
+  const discountAmt = subtotal * (discountPct / 100);
+  const taxable = subtotal - discountAmt;
+  const taxAmt = taxable * (taxPct / 100);
+  const total = taxable + taxAmt;
+
+  document.getElementById('pSubtotal').textContent = fmt(subtotal);
+  document.getElementById('pDiscountLabel').textContent = `Discount (${discountPct}%)`;
+  document.getElementById('pDiscount').textContent = '-' + fmt(discountAmt);
+  document.getElementById('pTaxLabel').textContent = `Tax (${taxPct}%)`;
+  document.getElementById('pTax').textContent = fmt(taxAmt);
+  document.getElementById('pTotal').textContent = fmt(total);
+  document.getElementById('pNotes').textContent = notes;
+
+  renderItemsForm.__lastAmounts = true;
+  // refresh amount column in the editable table too
+  const rows = document.querySelectorAll('#itemsBody tr .amount');
+  rows.forEach((cell, i) => { cell.textContent = fmt(items[i].qty * items[i].rate); });
+}
+
+function downloadJSON(){
+  const data = {
+    from: {
+      name: document.getElementById('fromName').value,
+      address: document.getElementById('fromAddress').value
+    },
+    to: {
+      name: document.getElementById('toName').value,
+      address: document.getElementById('toAddress').value
+    },
+    invoice_number: document.getElementById('invNumber').value,
+    status: document.getElementById('invStatus').value,
+    issue_date: document.getElementById('invDate').value,
+    due_date: document.getElementById('dueDate').value,
+    items: items,
+    tax_pct: parseFloat(document.getElementById('taxPct').value) || 0,
+    discount_pct: parseFloat(document.getElementById('discountPct').value) || 0,
+    notes: document.getElementById('notes').value
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (data.invoice_number || 'invoice') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// init
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('invDate').value = today;
+const due = new Date();
+due.setDate(due.getDate() + 15);
+document.getElementById('dueDate').value = due.toISOString().split('T')[0];
+
+renderItemsForm();
+render();
+</script>
+
+</body>
+</html>

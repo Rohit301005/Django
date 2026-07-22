@@ -17,4 +17,8 @@ def show_invoice(request):
 
     return render(request, "cust_name.html", data)
 
+def contact(request):
+    return HttpResponse("This is contact Page")
+
+
 

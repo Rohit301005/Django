@@ -10,8 +10,21 @@ class Invoice(models.Model):
     date_create = models.DateField(auto_now_add = True)
     is_paid = models.BooleanField(default = False)
     note = models.TextField(blank = True)
+    time = models.TimeField(auto_now_add = True)
+
+
 
     def __str__(self):
         return self.invoice_number
+
+
+class Product(models.Model):
+    pass
+
+class InvoiceItem(models.Model):
+    pass
+
+
+
 
 
